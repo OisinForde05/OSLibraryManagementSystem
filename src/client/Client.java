@@ -16,13 +16,14 @@ public class Client {
 
             System.out.println(input.readLine());
 
-            String text;
             while (true) {
-                System.out.print("Enter message (type 'exit' to quit): ");
-                text = scanner.nextLine();
-                if (text.equalsIgnoreCase("exit")) break;
-                output.println(text);
-                System.out.println("Server: " + input.readLine());
+                System.out.print("> ");
+                String command = scanner.nextLine();
+                output.println(command);
+                String response = input.readLine();
+                if (response == null) break;
+                System.out.println(response);
+                if (command.equalsIgnoreCase("EXIT")) break;
             }
 
         } catch (IOException e) {
