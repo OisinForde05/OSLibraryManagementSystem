@@ -1,7 +1,8 @@
 package server;
 
-import java.io.*;
-import java.net.*;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 public class Server {
     private static final int PORT = 5000;
@@ -9,17 +10,14 @@ public class Server {
     public static void main(String[] args) {
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             System.out.println("Server running on port " + PORT);
-            Socket clientSocket = serverSocket.accept();
-            System.out.println("Client connected: " + clientSocket.getInetAddress());
 
-            BufferedReader input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            PrintWriter output = new PrintWriter(clientSocket.getOutputStream(), true);
-
-            String clientMessage = input.readLine();
-            System.out.println("Client says: " + clientMessage);
-            output.println("Message received: " + clientMessage);
-
-            clientSocket.close();
+            while (true) {
+                Socket clientSocket = serverSocket.accept();
+                System.out.println("Client connected: " + clientSocket.getInetAddress());
+                ClientHandler handler = new ClientHandler(clientSocket);
+                Thread thread = new Thread(handler);
+                thread.start();
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
