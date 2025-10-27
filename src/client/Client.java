@@ -20,9 +20,12 @@ public class Client {
                 System.out.print("> ");
                 String command = scanner.nextLine();
                 output.println(command);
-                String response = input.readLine();
-                if (response == null) break;
-                System.out.println(response);
+                String response;
+                while ((response = input.readLine()) != null) {
+                    if (response.equals("END_OF_RECORDS")) break;
+                    System.out.println(response);
+                    if (!input.ready()) break;
+                }
                 if (command.equalsIgnoreCase("EXIT")) break;
             }
 

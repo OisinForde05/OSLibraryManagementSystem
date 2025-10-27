@@ -2,8 +2,8 @@ package server;
 
 import java.io.*;
 import java.net.*;
-import models.User;
-import utils.UserDatabase;
+import models.*;
+import utils.*;
 
 public class ClientHandler implements Runnable {
     private Socket clientSocket;
@@ -19,7 +19,7 @@ public class ClientHandler implements Runnable {
             BufferedReader input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             PrintWriter output = new PrintWriter(clientSocket.getOutputStream(), true);
 
-            output.println("Connected to server. Use REGISTER or LOGIN commands.");
+            output.println("Connected to server. Use REGISTER, LOGIN, CREATE_RECORD, GET_RECORDS, or EXIT.");
 
             String message;
             while ((message = input.readLine()) != null) {
@@ -49,6 +49,31 @@ public class ClientHandler implements Runnable {
                         } else {
                             output.println("Invalid email or password");
                         }
+                        break;
+
+                    case "CREATE_RECORD":
+                        if (loggedInUser == null) {
+                            output.println("You must log in first.");
+                            break;
+                        }
+                        if (parts.length < 2) {
+                            output.println("Usage: CREATE_RECORD recordType");
+                            break;
+                        }
+                        String recordType = parts[1];
+                        LibraryRecord record = RecordDatabase.createRecord(recordType, loggedInUser.getStudentId(), "Available");
+                        output.println("Record created: " + record);
+                        break;
+
+                    case "GET_RECORDS":
+                        if (loggedInUser == null) {
+                            output.println("You must log in first.");
+                            break;
+                        }
+                        for (LibraryRecord r : RecordDatabase.getAllRecords()) {
+                            output.println(r.toString());
+                        }
+                        output.println("END_OF_RECORDS");
                         break;
 
                     case "EXIT":
