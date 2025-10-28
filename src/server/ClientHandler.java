@@ -19,7 +19,7 @@ public class ClientHandler implements Runnable {
             BufferedReader input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             PrintWriter output = new PrintWriter(clientSocket.getOutputStream(), true);
 
-            output.println("Connected to server. Use REGISTER, LOGIN, CREATE_RECORD, GET_RECORDS, or EXIT.");
+            output.println("Connected. Commands: REGISTER, LOGIN, CREATE_RECORD, GET_RECORDS, ASSIGN_RECORD, UPDATE_STATUS, EXIT");
 
             String message;
             while ((message = input.readLine()) != null) {
@@ -76,6 +76,48 @@ public class ClientHandler implements Runnable {
                         output.println("END_OF_RECORDS");
                         break;
 
+                    case "ASSIGN_RECORD":
+                        if (loggedInUser == null) {
+                            output.println("You must log in first.");
+                            break;
+                        }
+                        if (!loggedInUser.getRole().equalsIgnoreCase("Librarian")) {
+                            output.println("Only librarians can assign records.");
+                            break;
+                        }
+                        if (parts.length < 3) {
+                            output.println("Usage: ASSIGN_RECORD recordId librarianId");
+                            break;
+                        }
+                        try {
+                            int recordId = Integer.parseInt(parts[1]);
+                            String librarianId = parts[2];
+                            boolean assigned = RecordDatabase.assignRecord(recordId, librarianId);
+                            output.println(assigned ? "Record assigned." : "Record not found.");
+                        } catch (NumberFormatException e) {
+                            output.println("Invalid record ID.");
+                        }
+                        break;
+
+                    case "UPDATE_STATUS":
+                        if (loggedInUser == null) {
+                            output.println("You must log in first.");
+                            break;
+                        }
+                        if (parts.length < 3) {
+                            output.println("Usage: UPDATE_STATUS recordId newStatus");
+                            break;
+                        }
+                        try {
+                            int recordId = Integer.parseInt(parts[1]);
+                            String status = parts[2];
+                            boolean updated = RecordDatabase.updateStatus(recordId, status);
+                            output.println(updated ? "Status updated." : "Record not found.");
+                        } catch (NumberFormatException e) {
+                            output.println("Invalid record ID.");
+                        }
+                        break;
+
                     case "EXIT":
                         output.println("Goodbye");
                         clientSocket.close();
@@ -86,7 +128,6 @@ public class ClientHandler implements Runnable {
                         break;
                 }
             }
-
         } catch (IOException e) {
             e.printStackTrace();
         }
