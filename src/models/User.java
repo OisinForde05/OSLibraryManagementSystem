@@ -25,6 +25,10 @@ public class User {
         return password;
     }
 
+    public void setPassword(String newPassword) {
+        this.password = newPassword;
+    }
+
     public String getName() {
         return name;
     }
@@ -39,5 +43,16 @@ public class User {
 
     public String getDepartment() {
         return department;
+    }
+
+    @Override
+    public String toString() {
+        return name + "," + studentId + "," + email + "," + password + "," + department + "," + role;
+    }
+
+    public static User fromString(String data) {
+        String[] parts = data.split(",");
+        if (parts.length != 6) return null;
+        return new User(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]);
     }
 }

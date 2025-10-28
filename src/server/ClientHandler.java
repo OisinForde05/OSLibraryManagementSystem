@@ -19,7 +19,7 @@ public class ClientHandler implements Runnable {
             BufferedReader input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             PrintWriter output = new PrintWriter(clientSocket.getOutputStream(), true);
 
-            output.println("Connected. Commands: REGISTER, LOGIN, CREATE_RECORD, GET_RECORDS, ASSIGN_RECORD, UPDATE_STATUS, EXIT");
+            output.println("Connected. Commands: REGISTER, LOGIN, CREATE_RECORD, GET_RECORDS, ASSIGN_RECORD, UPDATE_STATUS, UPDATE_PASSWORD, EXIT");
 
             String message;
             while ((message = input.readLine()) != null) {
@@ -30,6 +30,10 @@ public class ClientHandler implements Runnable {
                     case "REGISTER":
                         if (parts.length < 7) {
                             output.println("Usage: REGISTER name studentId email password department role");
+                            break;
+                        }
+                        if (parts[4].length() < 4) {
+                            output.println("Password too short.");
                             break;
                         }
                         User newUser = new User(parts[1], parts[2], parts[3], parts[4], parts[5], parts[6]);
@@ -49,6 +53,19 @@ public class ClientHandler implements Runnable {
                         } else {
                             output.println("Invalid email or password");
                         }
+                        break;
+
+                    case "UPDATE_PASSWORD":
+                        if (loggedInUser == null) {
+                            output.println("You must log in first.");
+                            break;
+                        }
+                        if (parts.length < 2) {
+                            output.println("Usage: UPDATE_PASSWORD newPassword");
+                            break;
+                        }
+                        boolean changed = UserDatabase.updatePassword(loggedInUser, parts[1]);
+                        output.println(changed ? "Password updated." : "Invalid password.");
                         break;
 
                     case "CREATE_RECORD":
@@ -77,11 +94,7 @@ public class ClientHandler implements Runnable {
                         break;
 
                     case "ASSIGN_RECORD":
-                        if (loggedInUser == null) {
-                            output.println("You must log in first.");
-                            break;
-                        }
-                        if (!loggedInUser.getRole().equalsIgnoreCase("Librarian")) {
+                        if (loggedInUser == null || !loggedInUser.getRole().equalsIgnoreCase("Librarian")) {
                             output.println("Only librarians can assign records.");
                             break;
                         }
@@ -128,6 +141,7 @@ public class ClientHandler implements Runnable {
                         break;
                 }
             }
+
         } catch (IOException e) {
             e.printStackTrace();
         }
