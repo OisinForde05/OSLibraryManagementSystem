@@ -19,6 +19,14 @@ public class RecordDatabase {
         return new ArrayList<>(records);
     }
 
+    public static synchronized List<LibraryRecord> getRecordsByLibrarian(String librarianId) {
+        List<LibraryRecord> list = new ArrayList<>();
+        for (LibraryRecord r : records) {
+            if (r.getLibrarianId() != null && r.getLibrarianId().equalsIgnoreCase(librarianId)) list.add(r);
+        }
+        return list;
+    }
+
     public static synchronized LibraryRecord getRecordById(int id) {
         for (LibraryRecord r : records) {
             if (r.getRecordId() == id) return r;
@@ -47,26 +55,28 @@ public class RecordDatabase {
         return false;
     }
 
-    public static void saveToFile() {
+    public static synchronized void saveToFile() {
         try (PrintWriter writer = new PrintWriter(new FileWriter(FILE_PATH))) {
-            for (LibraryRecord r : records) {
-                writer.println(r.toString());
-            }
+            for (LibraryRecord r : records) writer.println(r.toPersistString());
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public static void loadFromFile() {
+    public static synchronized void loadFromFile() {
         File file = new File(FILE_PATH);
         if (!file.exists()) return;
+        List<LibraryRecord> loaded = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                // Skip persistence parsing for simplicity, could be extended if needed
+                LibraryRecord r = LibraryRecord.fromPersistString(line);
+                if (r != null) loaded.add(r);
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
+        records.clear();
+        records.addAll(loaded);
     }
 }

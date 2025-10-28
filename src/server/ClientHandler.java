@@ -19,7 +19,7 @@ public class ClientHandler implements Runnable {
             BufferedReader input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             PrintWriter output = new PrintWriter(clientSocket.getOutputStream(), true);
 
-            output.println("Connected. Commands: REGISTER, LOGIN, CREATE_RECORD, GET_RECORDS, ASSIGN_RECORD, UPDATE_STATUS, UPDATE_PASSWORD, EXIT");
+            output.println("Connected. Commands: REGISTER, LOGIN, CREATE_RECORD, GET_RECORDS, ASSIGN_RECORD, UPDATE_STATUS, UPDATE_PASSWORD, VIEW_ASSIGNED, EXIT");
 
             String message;
             while ((message = input.readLine()) != null) {
@@ -39,6 +39,7 @@ public class ClientHandler implements Runnable {
                         User newUser = new User(parts[1], parts[2], parts[3], parts[4], parts[5], parts[6]);
                         boolean registered = UserDatabase.register(newUser);
                         output.println(registered ? "Registration successful" : "Email or Student ID already exists");
+                        if (registered) LoggerUtil.log("New user registered: " + parts[3]);
                         break;
 
                     case "LOGIN":
@@ -50,9 +51,8 @@ public class ClientHandler implements Runnable {
                         if (user != null) {
                             loggedInUser = user;
                             output.println("Login successful as " + user.getRole() + ": " + user.getName());
-                        } else {
-                            output.println("Invalid email or password");
-                        }
+                            LoggerUtil.log("User logged in: " + user.getEmail());
+                        } else output.println("Invalid email or password");
                         break;
 
                     case "UPDATE_PASSWORD":
@@ -66,6 +66,7 @@ public class ClientHandler implements Runnable {
                         }
                         boolean changed = UserDatabase.updatePassword(loggedInUser, parts[1]);
                         output.println(changed ? "Password updated." : "Invalid password.");
+                        if (changed) LoggerUtil.log("Password updated for: " + loggedInUser.getEmail());
                         break;
 
                     case "CREATE_RECORD":
@@ -77,9 +78,9 @@ public class ClientHandler implements Runnable {
                             output.println("Usage: CREATE_RECORD recordType");
                             break;
                         }
-                        String recordType = parts[1];
-                        LibraryRecord record = RecordDatabase.createRecord(recordType, loggedInUser.getStudentId(), "Available");
+                        LibraryRecord record = RecordDatabase.createRecord(parts[1], loggedInUser.getStudentId(), "Available");
                         output.println("Record created: " + record);
+                        LoggerUtil.log("Record created by " + loggedInUser.getEmail());
                         break;
 
                     case "GET_RECORDS":
@@ -87,9 +88,7 @@ public class ClientHandler implements Runnable {
                             output.println("You must log in first.");
                             break;
                         }
-                        for (LibraryRecord r : RecordDatabase.getAllRecords()) {
-                            output.println(r.toString());
-                        }
+                        for (LibraryRecord r : RecordDatabase.getAllRecords()) output.println(r.toString());
                         output.println("END_OF_RECORDS");
                         break;
 
@@ -104,9 +103,9 @@ public class ClientHandler implements Runnable {
                         }
                         try {
                             int recordId = Integer.parseInt(parts[1]);
-                            String librarianId = parts[2];
-                            boolean assigned = RecordDatabase.assignRecord(recordId, librarianId);
+                            boolean assigned = RecordDatabase.assignRecord(recordId, parts[2]);
                             output.println(assigned ? "Record assigned." : "Record not found.");
+                            if (assigned) LoggerUtil.log("Record " + recordId + " assigned by " + loggedInUser.getEmail());
                         } catch (NumberFormatException e) {
                             output.println("Invalid record ID.");
                         }
@@ -123,16 +122,27 @@ public class ClientHandler implements Runnable {
                         }
                         try {
                             int recordId = Integer.parseInt(parts[1]);
-                            String status = parts[2];
-                            boolean updated = RecordDatabase.updateStatus(recordId, status);
+                            boolean updated = RecordDatabase.updateStatus(recordId, parts[2]);
                             output.println(updated ? "Status updated." : "Record not found.");
+                            if (updated) LoggerUtil.log("Record " + recordId + " status changed to " + parts[2]);
                         } catch (NumberFormatException e) {
                             output.println("Invalid record ID.");
                         }
                         break;
 
+                    case "VIEW_ASSIGNED":
+                        if (loggedInUser == null || !loggedInUser.getRole().equalsIgnoreCase("Librarian")) {
+                            output.println("Only librarians can view assigned records.");
+                            break;
+                        }
+                        for (LibraryRecord r : RecordDatabase.getRecordsByLibrarian(loggedInUser.getStudentId()))
+                            output.println(r.toString());
+                        output.println("END_OF_RECORDS");
+                        break;
+
                     case "EXIT":
                         output.println("Goodbye");
+                        LoggerUtil.log("Client disconnected: " + (loggedInUser != null ? loggedInUser.getEmail() : "unknown"));
                         clientSocket.close();
                         return;
 
@@ -141,7 +151,6 @@ public class ClientHandler implements Runnable {
                         break;
                 }
             }
-
         } catch (IOException e) {
             e.printStackTrace();
         }
